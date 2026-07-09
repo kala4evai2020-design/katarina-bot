@@ -207,7 +207,7 @@ async def send_podcast(message: Message, key: str, sc: dict):
         parse_mode="Markdown"
     )
 
-    audio_path = f"media/{AUDIO_FILES[key]}"
+    audio_path = f"media/{{audio,video}}/{AUDIO_FILES[key]}"
     if os.path.exists(audio_path):
         await message.answer_voice(voice=FSInputFile(audio_path))
     else:
