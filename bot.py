@@ -25,10 +25,9 @@ dp  = Dispatcher(storage=MemoryStorage())
 
 TOTAL_Q = len(QUESTIONS)
 
-# Хранилище file_id видео (заполняется командой /setvideo)
 VIDEO_FILE_ID_PATH = "video_file_id.txt"
 
-def get_video_file_id() -> str | None:
+def get_video_file_id():
     if os.path.exists(VIDEO_FILE_ID_PATH):
         with open(VIDEO_FILE_ID_PATH, "r") as f:
             return f.read().strip() or None
@@ -38,67 +37,62 @@ def save_video_file_id(file_id: str):
     with open(VIDEO_FILE_ID_PATH, "w") as f:
         f.write(file_id)
 
-
-# ─── /setvideo — только для Катарины ─────────────────────────────────────────
-
 @dp.message(Command("setvideo"))
 async def cmd_setvideo(message: Message):
     if str(message.from_user.id) != str(ADMIN_ID):
         return
-
     if message.video:
         file_id = message.video.file_id
         save_video_file_id(file_id)
-        await message.answer(
-            f"✅ Видео сохранено!\n\n`file_id: {file_id}`\n\n"
-            "Теперь бот будет отправлять это видео всем пользователям.",
-            parse_mode="Markdown"
-        )
+        await message.answer("Video saved: " + file_id)
     else:
-        await message.answer(
-            "⚠️ Отправь видео вместе с командой /setvideo.\n\n"
-            "Как это сделать:\n"
-            "1. Нажми на скрепку (прикрепить файл)\n"
-            "2. Выбери видео\n"
-            "3. В подписи напиши /setvideo\n"
-            "4. Отправь"
-        )
-
+        await message.answer("Send video with /setvideo caption")
 
 class QuizState(StatesGroup):
     answering = State()
 
-
-# ─── /start ───────────────────────────────────────────────────────────────────
-
 @dp.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
-
     kb = InlineKeyboardBuilder()
     kb.button(text="▶ Пройти Чекап", callback_data="start_quiz")
 
-   await message.answer_photo(
-    photo=FSInputFile("media/{audio,video}/welcome.jpg"),
-    caption=(
-        "Привет. Я Катарина Ковальская — эксперт по программированию подсознания.\n\n"
-        "Вижу то, чего не видят психологи: глубинные программы, которые управляют "
-        "твоей жизнью «за кадром» и не дают развиваться и двигаться дальше.\n\n"
-        "Подсознательные сценарии — это программы, которые были «записаны» давно "
-        "и с тех пор тихо управляют твоими решениями, реакциями и тем, что ты "
-        "притягиваешь в свою жизнь.\n\n"
-        "Пока ты их не видишь — они спокойно работают и разрушают жизнь. "
-        "Поэтому их стоит подсвечивать, выявлять и перепрограммировать!\n\n"
-        "За 5 минут Чекап подсознания покажет:\n"
-        "● какой сценарий сейчас доминирует и управляет твоей жизнью\n"
-        "● что именно он блокирует — деньги, отношения или энергию\n"
-        "● и с чего начать, чтобы выйти из этого замкнутого круга"
-    ),
-    reply_markup=kb.as_markup()
-    )
-
-
-# ─── Старт квиза ──────────────────────────────────────────────────────────────
+    photo_path = "media/{audio,video}/welcome.jpg"
+    if os.path.exists(photo_path):
+        await message.answer_photo(
+            photo=FSInputFile(photo_path),
+            caption=(
+                "Привет. Я Катарина Ковальская — эксперт по программированию подсознания.\n\n"
+                "Вижу то, чего не видят психологи: глубинные программы, которые управляют "
+                "твоей жизнью «за кадром» и не дают развиваться и двигаться дальше.\n\n"
+                "Подсознательные сценарии — это программы, которые были «записаны» давно "
+                "и с тех пор тихо управляют твоими решениями, реакциями и тем, что ты "
+                "притягиваешь в свою жизнь.\n\n"
+                "Пока ты их не видишь — они спокойно работают и разрушают жизнь. "
+                "Поэтому их стоит подсвечивать, выявлять и перепрограммировать!\n\n"
+                "За 5 минут Чекап подсознания покажет:\n"
+                "● какой сценарий сейчас доминирует и управляет твоей жизнью\n"
+                "● что именно он блокирует — деньги, отношения или энергию\n"
+                "● и с чего начать, чтобы выйти из этого замкнутого круга"
+            ),
+            reply_markup=kb.as_markup()
+        )
+    else:
+        await message.answer(
+            "Привет. Я Катарина Ковальская — эксперт по программированию подсознания.\n\n"
+            "Вижу то, чего не видят психологи: глубинные программы, которые управляют "
+            "твоей жизнью «за кадром» и не дают развиваться и двигаться дальше.\n\n"
+            "Подсознательные сценарии — это программы, которые были «записаны» давно "
+            "и с тех пор тихо управляют твоими решениями, реакциями и тем, что ты "
+            "притягиваешь в свою жизнь.\n\n"
+            "Пока ты их не видишь — они спокойно работают и разрушают жизнь. "
+            "Поэтому их стоит подсвечивать, выявлять и перепрограммировать!\n\n"
+            "За 5 минут Чекап подсознания покажет:\n"
+            "● какой сценарий сейчас доминирует и управляет твоей жизнью\n"
+            "● что именно он блокирует — деньги, отношения или энергию\n"
+            "● и с чего начать, чтобы выйти из этого замкнутого круга",
+            reply_markup=kb.as_markup()
+        )
 
 @dp.callback_query(F.data == "start_quiz")
 async def start_quiz(callback: CallbackQuery, state: FSMContext):
@@ -108,44 +102,31 @@ async def start_quiz(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await send_question(callback.message, 0)
 
-
-# ─── Отправить вопрос ─────────────────────────────────────────────────────────
-
 async def send_question(message: Message, idx: int):
     q = QUESTIONS[idx]
     kb = InlineKeyboardBuilder()
     for opt in q["options"]:
         kb.button(text=opt["text"], callback_data=f"ans_{opt['scenario']}")
     kb.adjust(1)
-
     await message.answer(
         f"_{idx + 1} из {TOTAL_Q}_\n\n*{q['text']}*",
         parse_mode="Markdown",
         reply_markup=kb.as_markup()
     )
 
-
-# ─── Ответ ────────────────────────────────────────────────────────────────────
-
 @dp.callback_query(QuizState.answering, F.data.startswith("ans_"))
 async def process_answer(callback: CallbackQuery, state: FSMContext):
     scenario = callback.data.replace("ans_", "")
     data = await state.get_data()
-
     scores = data["scores"]
     scores[scenario] = scores.get(scenario, 0) + 1
     idx = data["q_idx"] + 1
-
     await state.update_data(scores=scores, q_idx=idx)
     await callback.answer()
-
     if idx < TOTAL_Q:
         await send_question(callback.message, idx)
     else:
         await show_result(callback.message, scores, state)
-
-
-# ─── Результат ────────────────────────────────────────────────────────────────
 
 async def show_result(message: Message, raw_scores: dict, state: FSMContext):
     await message.answer(
@@ -153,38 +134,28 @@ async def show_result(message: Message, raw_scores: dict, state: FSMContext):
         parse_mode="Markdown"
     )
     await asyncio.sleep(2)
-
     result  = calculate_result(raw_scores)
     pct     = result["percentages"]
     leaders = result["leaders"]
-
-    # Профиль текстом
     lines = []
     for key in ["V", "K", "HD", "N", "S"]:
         marker = "⭐" if key in leaders else "·"
         lines.append(f"{marker} *{SCENARIO_NAMES[key]}* — {pct[key]}%")
-
     await message.answer(
         "📊 *Профиль жизненных сценариев:*\n\n" + "\n".join(lines),
         parse_mode="Markdown"
     )
     await asyncio.sleep(1)
-
-    # Инфографика
     img_path = generate_graph(pct, leaders, result["graph_file"])
     photo    = FSInputFile(img_path)
     leader_names = " + ".join(SCENARIO_NAMES[k] for k in leaders)
-    type_label   = "один ведущий сценарий" if result["result_type"] == "A" \
-                   else "два ведущих сценария"
-
+    type_label   = "один ведущий сценарий" if result["result_type"] == "A" else "два ведущих сценария"
     await message.answer_photo(
         photo=photo,
         caption=f"*Твой результат: {leader_names}*\n_{type_label}_",
         parse_mode="Markdown"
     )
     await asyncio.sleep(1)
-
-    # Расшифровка
     primary = leaders[0]
     sc = SCENARIOS[primary]
     await message.answer(
@@ -192,44 +163,28 @@ async def show_result(message: Message, raw_scores: dict, state: FSMContext):
         parse_mode="Markdown"
     )
     await asyncio.sleep(1)
-
-    # Сохраняем user_id и время для дожима
-    await state.update_data(
-        leader=primary,
-        quiz_done_at=datetime.utcnow().isoformat()
-    )
-
+    await state.update_data(leader=primary, quiz_done_at=datetime.utcnow().isoformat())
     await send_podcast(message, primary, sc)
-
-
-# ─── Подкаст ──────────────────────────────────────────────────────────────────
 
 async def send_podcast(message: Message, key: str, sc: dict):
     await message.answer(
         "🎙 *Записала тебе личное аудио послание — прослушай его, это важно.*",
         parse_mode="Markdown"
     )
-
     audio_path = f"media/{{audio,video}}/{AUDIO_FILES[key]}"
     if os.path.exists(audio_path):
         await message.answer_voice(voice=FSInputFile(audio_path))
     else:
         await message.answer(
-            "_(Аудио от Катарины будет здесь — файл: "
-            f"{AUDIO_FILES[key]})_",
+            f"_(Аудио: {AUDIO_FILES[key]})_",
             parse_mode="Markdown"
         )
-
     await asyncio.sleep(1)
     await send_podcast_bridge(message)
-
-
-# ─── Мостик подкаст → видео ───────────────────────────────────────────────────
 
 async def send_podcast_bridge(message: Message):
     kb = InlineKeyboardBuilder()
     kb.button(text="▶ Смотреть видео", callback_data="watch_video")
-
     await message.answer(
         "Поздравляю — первый шаг сделан! И теперь мы нащупали твою доминантную ведущую программу.\n\n"
         "Ты думаешь: «Окей, теперь я понимаю, в чём причина. Буду работать над собой».\n\n"
@@ -237,21 +192,16 @@ async def send_podcast_bridge(message: Message):
         "Это естественная реакция. Но вот что важно знать:\n\n"
         "Выявление программы не ведёт к улучшениям. Разрушающие программы умеют хитро "
         "адаптироваться — они надевают другие маски, часто этот сценарий появляется в "
-        "новых ситуациях, с новыми людьми. И жизнь снова и снова возвращает тебя "
-        "в одни и те же сценарии.\n\n"
+        "новых ситуациях, с новыми людьми. И жизнь снова и снова возвращает тебя в одни и те же сценарии.\n\n"
         "Чтобы это остановить — нужно найти корень. Не симптом, а первопричину.\n\n"
         "В следующем видео я расскажу, как именно это работает — и что нужно сделать, "
         "чтобы сценарий перестал повторяться.",
         reply_markup=kb.as_markup()
     )
 
-
-# ─── Видео ────────────────────────────────────────────────────────────────────
-
 @dp.callback_query(F.data == "watch_video")
 async def send_video(callback: CallbackQuery):
     await callback.answer()
-
     file_id = get_video_file_id()
     if file_id:
         await callback.message.answer_video(video=file_id)
@@ -260,17 +210,12 @@ async def send_video(callback: CallbackQuery):
             "🎬 _(Видео скоро появится здесь)_",
             parse_mode="Markdown"
         )
-
     await asyncio.sleep(1)
     await send_cta(callback.message)
-
-
-# ─── CTA ──────────────────────────────────────────────────────────────────────
 
 async def send_cta(message: Message):
     kb = InlineKeyboardBuilder()
     kb.button(text="▶ Записаться на Сканирование жизни", url=CTA_URL)
-
     await message.answer(
         "Теперь ты знаешь свой доминирующий сценарий.\n\n"
         "А давай пойдём глубже — но уже вместе?\n\n"
@@ -285,12 +230,8 @@ async def send_cta(message: Message):
         reply_markup=kb.as_markup()
     )
 
-
-# ─── Запуск ───────────────────────────────────────────────────────────────────
-
 async def main():
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
