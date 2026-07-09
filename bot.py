@@ -58,7 +58,9 @@ async def cmd_start(message: Message, state: FSMContext):
     kb.button(text="▶ Пройти Чекап", callback_data="start_quiz")
 
     photo_path = "welcome.jpg"
-    if os.path.exists(photo_path):
+logger.info(f"Looking for photo at: {os.path.abspath(photo_path)}")
+logger.info(f"Files in current dir: {os.listdir('.')}")
+if os.path.exists(photo_path):
         await message.answer_photo(
             photo=FSInputFile(photo_path),
             caption=(
