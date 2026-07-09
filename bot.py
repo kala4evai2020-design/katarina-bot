@@ -58,9 +58,9 @@ async def cmd_start(message: Message, state: FSMContext):
     kb.button(text="▶ Пройти Чекап", callback_data="start_quiz")
 
     photo_path = "welcome.jpg"
-logger.info(f"Looking for photo at: {os.path.abspath(photo_path)}")
-logger.info(f"Files in current dir: {os.listdir('.')}")
-if os.path.exists(photo_path):
+    logger.info(f"Looking for photo at: {os.path.abspath(photo_path)}")
+    logger.info(f"Files in current dir: {os.listdir('.')}")
+    if os.path.exists(photo_path):
         await message.answer_photo(
             photo=FSInputFile(photo_path),
             caption=(
@@ -173,7 +173,7 @@ async def send_podcast(message: Message, key: str, sc: dict):
         "🎙 *Записала тебе личное аудио послание — прослушай его, это важно.*",
         parse_mode="Markdown"
     )
-    audio_path = f"media/{{audio,video}}/{AUDIO_FILES[key]}"
+    audio_path = f"media/{AUDIO_FILES[key]}"
     if os.path.exists(audio_path):
         await message.answer_voice(voice=FSInputFile(audio_path))
     else:
