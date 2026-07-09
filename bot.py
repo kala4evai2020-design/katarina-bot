@@ -57,7 +57,7 @@ async def cmd_start(message: Message, state: FSMContext):
     kb = InlineKeyboardBuilder()
     kb.button(text="▶ Пройти Чекап", callback_data="start_quiz")
 
-    photo_path = "media/{audio,video}/welcome.jpg"
+    photo_path = "welcome.jpg"
     if os.path.exists(photo_path):
         await message.answer_photo(
             photo=FSInputFile(photo_path),
