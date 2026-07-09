@@ -78,7 +78,9 @@ async def cmd_start(message: Message, state: FSMContext):
     kb = InlineKeyboardBuilder()
     kb.button(text="▶ Пройти Чекап", callback_data="start_quiz")
 
-    await message.answer(
+   await message.answer_photo(
+    photo=FSInputFile("media/{audio,video}/welcome.jpg"),
+    caption=(
         "Привет. Я Катарина Ковальская — эксперт по программированию подсознания.\n\n"
         "Вижу то, чего не видят психологи: глубинные программы, которые управляют "
         "твоей жизнью «за кадром» и не дают развиваться и двигаться дальше.\n\n"
@@ -90,8 +92,9 @@ async def cmd_start(message: Message, state: FSMContext):
         "За 5 минут Чекап подсознания покажет:\n"
         "● какой сценарий сейчас доминирует и управляет твоей жизнью\n"
         "● что именно он блокирует — деньги, отношения или энергию\n"
-        "● и с чего начать, чтобы выйти из этого замкнутого круга",
-        reply_markup=kb.as_markup()
+        "● и с чего начать, чтобы выйти из этого замкнутого круга"
+    ),
+    reply_markup=kb.as_markup()
     )
 
 
