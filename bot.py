@@ -57,42 +57,39 @@ async def cmd_start(message: Message, state: FSMContext):
     kb = InlineKeyboardBuilder()
     kb.button(text="▶ Пройти Чекап", callback_data="start_quiz")
 
-    photo_path = "welcome.jpg"
-    logger.info(f"Looking for photo at: {os.path.abspath(photo_path)}")
+    photo_path = None
+    for name in ["welcome.jpg", "welcome.jpeg", "welcome.png"]:
+        if os.path.exists(name):
+            photo_path = name
+            break
+
     logger.info(f"Files in current dir: {os.listdir('.')}")
-    if os.path.exists(photo_path):
+    logger.info(f"Photo path found: {photo_path}")
+
+    welcome_text = (
+        "Привет. Я Катарина Ковальская — эксперт по программированию подсознания.\n\n"
+        "Вижу то, чего не видят психологи: глубинные программы, которые управляют "
+        "твоей жизнью «за кадром» и не дают развиваться и двигаться дальше.\n\n"
+        "Подсознательные сценарии — это программы, которые были «записаны» давно "
+        "и с тех пор тихо управляют твоими решениями, реакциями и тем, что ты "
+        "притягиваешь в свою жизнь.\n\n"
+        "Пока ты их не видишь — они спокойно работают и разрушают жизнь. "
+        "Поэтому их стоит подсвечивать, выявлять и перепрограммировать!\n\n"
+        "За 5 минут Чекап подсознания покажет:\n"
+        "● какой сценарий сейчас доминирует и управляет твоей жизнью\n"
+        "● что именно он блокирует — деньги, отношения или энергию\n"
+        "● и с чего начать, чтобы выйти из этого замкнутого круга"
+    )
+
+    if photo_path:
         await message.answer_photo(
             photo=FSInputFile(photo_path),
-            caption=(
-                "Привет. Я Катарина Ковальская — эксперт по программированию подсознания.\n\n"
-                "Вижу то, чего не видят психологи: глубинные программы, которые управляют "
-                "твоей жизнью «за кадром» и не дают развиваться и двигаться дальше.\n\n"
-                "Подсознательные сценарии — это программы, которые были «записаны» давно "
-                "и с тех пор тихо управляют твоими решениями, реакциями и тем, что ты "
-                "притягиваешь в свою жизнь.\n\n"
-                "Пока ты их не видишь — они спокойно работают и разрушают жизнь. "
-                "Поэтому их стоит подсвечивать, выявлять и перепрограммировать!\n\n"
-                "За 5 минут Чекап подсознания покажет:\n"
-                "● какой сценарий сейчас доминирует и управляет твоей жизнью\n"
-                "● что именно он блокирует — деньги, отношения или энергию\n"
-                "● и с чего начать, чтобы выйти из этого замкнутого круга"
-            ),
+            caption=welcome_text,
             reply_markup=kb.as_markup()
         )
     else:
         await message.answer(
-            "Привет. Я Катарина Ковальская — эксперт по программированию подсознания.\n\n"
-            "Вижу то, чего не видят психологи: глубинные программы, которые управляют "
-            "твоей жизнью «за кадром» и не дают развиваться и двигаться дальше.\n\n"
-            "Подсознательные сценарии — это программы, которые были «записаны» давно "
-            "и с тех пор тихо управляют твоими решениями, реакциями и тем, что ты "
-            "притягиваешь в свою жизнь.\n\n"
-            "Пока ты их не видишь — они спокойно работают и разрушают жизнь. "
-            "Поэтому их стоит подсвечивать, выявлять и перепрограммировать!\n\n"
-            "За 5 минут Чекап подсознания покажет:\n"
-            "● какой сценарий сейчас доминирует и управляет твоей жизнью\n"
-            "● что именно он блокирует — деньги, отношения или энергию\n"
-            "● и с чего начать, чтобы выйти из этого замкнутого круга",
+            welcome_text,
             reply_markup=kb.as_markup()
         )
 
@@ -165,7 +162,7 @@ async def show_result(message: Message, raw_scores: dict, state: FSMContext):
         parse_mode="Markdown"
     )
     await asyncio.sleep(1)
-    await state.update_data(leader=primary, quiz_done_at=datetime.utcnow().isoformat())
+    await state.update_data(leader=primary, quiz_done_at=datetime.now().isoformat())
     await send_podcast(message, primary, sc)
 
 async def send_podcast(message: Message, key: str, sc: dict):
@@ -173,12 +170,20 @@ async def send_podcast(message: Message, key: str, sc: dict):
         "🎙 *Записала тебе личное аудио послание — прослушай его, это важно.*",
         parse_mode="Markdown"
     )
-    audio_path = f"media/{AUDIO_FILES[key]}"
-    if os.path.exists(audio_path):
+    audio_file = AUDIO_FILES[key]
+    audio_path = None
+    for folder in ["media", "media/audio", "media/video", "."]:
+        candidate = os.path.join(folder, audio_file)
+        if os.path.exists(candidate):
+            audio_path = candidate
+            break
+
+    if audio_path:
         await message.answer_voice(voice=FSInputFile(audio_path))
     else:
+        logger.warning(f"Audio not found: {audio_file}")
         await message.answer(
-            f"_(Аудио: {AUDIO_FILES[key]})_",
+            "_(Аудио временно недоступно)_",
             parse_mode="Markdown"
         )
     await asyncio.sleep(1)
