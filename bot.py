@@ -25,17 +25,11 @@ dp  = Dispatcher(storage=MemoryStorage())
 
 TOTAL_Q = len(QUESTIONS)
 
-VIDEO_FILE_ID_PATH = "video_file_id.txt"
-
 def get_video_file_id():
-    if os.path.exists(VIDEO_FILE_ID_PATH):
-        with open(VIDEO_FILE_ID_PATH, "r") as f:
-            return f.read().strip() or None
-    return None
+    return os.environ.get("VIDEO_FILE_ID") or None
 
 def save_video_file_id(file_id: str):
-    with open(VIDEO_FILE_ID_PATH, "w") as f:
-        f.write(file_id)
+    logger.info(f"New video file_id: {file_id}")
 
 @dp.message(Command("setvideo"))
 async def cmd_setvideo(message: Message):
@@ -44,7 +38,10 @@ async def cmd_setvideo(message: Message):
     if message.video:
         file_id = message.video.file_id
         save_video_file_id(file_id)
-        await message.answer("Video saved: " + file_id)
+        await message.answer(
+            f"✅ Видео получено!\n\nfile_id:\n{file_id}\n\n"
+            f"Добавь его в Railway → Variables → VIDEO_FILE_ID"
+        )
     else:
         await message.answer("Send video with /setvideo caption")
 
@@ -172,7 +169,7 @@ async def send_podcast(message: Message, key: str, sc: dict):
     )
     audio_file = AUDIO_FILES[key]
     audio_path = None
-    for folder in ["media", "media/audio", "media/video", "."]:
+    for folder in ["media/{audio,video}", "media", "media/audio", "."]:
         candidate = os.path.join(folder, audio_file)
         if os.path.exists(candidate):
             audio_path = candidate
