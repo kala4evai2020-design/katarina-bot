@@ -3,15 +3,16 @@
 Ведущие сценарии выделены золотым, остальные — приглушённым.
 """
 import os
+import urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
 SIZE       = 1080
-BG         = "#1C1320"   # тёмно-сливовый, глубокий и дорогой
-LEAD_COLOR = "#7B3B6E"   # насыщенный фиолетово-бордо (ведущие)
-MUTED      = "#3D2B3A"   # приглушённый тёмно-лавандовый (остальные)
-TEXT_MAIN  = "#F0EAF5"   # мягкий кремово-лиловый
-TEXT_DIM   = "#907A8A"   # приглушённый розово-серый
-ACCENT_LINE= "#7B3B6E"   # линии в цвет бренда
+BG         = "#1C1320"
+LEAD_COLOR = "#7B3B6E"
+MUTED      = "#3D2B3A"
+TEXT_MAIN  = "#F0EAF5"
+TEXT_DIM   = "#907A8A"
+ACCENT_LINE= "#7B3B6E"
 
 SCENARIO_ORDER = ["V", "K", "HD", "N", "S"]
 SCENARIO_LABELS = {
@@ -22,37 +23,34 @@ SCENARIO_LABELS = {
     "S":  "Спасатель",
 }
 
+FONT_URL_REGULAR = "https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Regular.ttf"
+FONT_URL_BOLD    = "https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Bold.ttf"
+FONT_PATH_REGULAR = "/tmp/Roboto-Regular.ttf"
+FONT_PATH_BOLD    = "/tmp/Roboto-Bold.ttf"
+
+
+def _download_fonts():
+    if not os.path.exists(FONT_PATH_REGULAR):
+        urllib.request.urlretrieve(FONT_URL_REGULAR, FONT_PATH_REGULAR)
+    if not os.path.exists(FONT_PATH_BOLD):
+        urllib.request.urlretrieve(FONT_URL_BOLD, FONT_PATH_BOLD)
+
 
 def _font(size, bold=False):
-    candidates = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold
-        else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    ]
-    for p in candidates:
-        if os.path.exists(p):
-            try:
-                return ImageFont.truetype(p, size)
-            except Exception:
-                pass
-    return ImageFont.load_default()
+    _download_fonts()
+    path = FONT_PATH_BOLD if bold else FONT_PATH_REGULAR
+    try:
+        return ImageFont.truetype(path, size)
+    except Exception:
+        return ImageFont.load_default()
 
 
 def generate_graph(percentages: dict, leaders: list, graph_file: str) -> str:
-    """
-    percentages: {"В": 49, "К": 24, "ХД": 11, "Н": 11, "С": 5}
-    leaders:     ["К"] или ["В", "К"]
-    graph_file:  "grafik_K" (без расширения)
-    Возвращает путь к PNG.
-    """
     img  = Image.new("RGB", (SIZE, SIZE), BG)
     draw = ImageDraw.Draw(img)
 
-    # ── Рамка ────────────────────────────────────────────────────────────────
     draw.rectangle([10, 10, SIZE-10, SIZE-10], outline=LEAD_COLOR, width=2)
 
-    # ── Заголовок ────────────────────────────────────────────────────────────
     f_head  = _font(30, bold=True)
     f_sub   = _font(22)
     f_label = _font(26, bold=True)
@@ -64,10 +62,8 @@ def generate_graph(percentages: dict, leaders: list, graph_file: str) -> str:
     draw.text((SIZE//2, 100), "Чекап подсознания · Катарина Ковальская",
               font=f_sub,  fill=TEXT_DIM, anchor="mm")
 
-    # Разделитель
     draw.line([(60, 130), (SIZE-60, 130)], fill=ACCENT_LINE, width=1)
 
-    # ── Бары ─────────────────────────────────────────────────────────────────
     n        = len(SCENARIO_ORDER)
     area_top = 155
     area_bot = SIZE - 160
@@ -86,21 +82,17 @@ def generate_graph(percentages: dict, leaders: list, graph_file: str) -> str:
         bar_top  = cy - bar_h // 2
         bar_bot  = cy + bar_h // 2
 
-        # Фон бара
         draw.rounded_rectangle(
             [bar_left, bar_top, bar_left + bar_max, bar_bot],
             radius=10, fill="#2A1E28"
         )
-        # Заполненный бар
         draw.rounded_rectangle(
             [bar_left, bar_top, bar_left + fill_w, bar_bot],
             radius=10, fill=color
         )
 
-        # Метка сценария (слева)
         label = SCENARIO_LABELS[key]
         label_color = TEXT_MAIN if is_lead else TEXT_DIM
-        # Двустрочные подписи
         lines = label.split("\n")
         if len(lines) == 1:
             draw.text((bar_left - 14, cy), lines[0],
@@ -111,17 +103,14 @@ def generate_graph(percentages: dict, leaders: list, graph_file: str) -> str:
             draw.text((bar_left - 14, cy + 12), lines[1],
                       font=_font(22, bold=True), fill=label_color, anchor="rm")
 
-        # Процент (справа от бара)
         pct_x = bar_left + fill_w + 14
         draw.text((pct_x, cy), f"{pct}%",
                   font=f_pct, fill=TEXT_MAIN if is_lead else TEXT_DIM, anchor="lm")
 
-        # Звёздочка у ведущего
         if is_lead:
             draw.text((bar_left - 50, cy), "★",
                       font=_font(28, bold=True), fill=LEAD_COLOR, anchor="mm")
 
-    # ── Подпись снизу ────────────────────────────────────────────────────────
     draw.line([(60, SIZE-140), (SIZE-60, SIZE-140)], fill=ACCENT_LINE, width=1)
 
     leader_names = " + ".join(
@@ -137,7 +126,6 @@ def generate_graph(percentages: dict, leaders: list, graph_file: str) -> str:
               "Любой сценарий — это точка входа, а не приговор.",
               font=f_small, fill=TEXT_DIM, anchor="mm")
 
-    # ── Сохраняем ────────────────────────────────────────────────────────────
     os.makedirs("temp", exist_ok=True)
     path = f"temp/{graph_file}.png"
     img.save(path, "PNG")
