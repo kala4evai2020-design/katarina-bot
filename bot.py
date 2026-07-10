@@ -16,12 +16,14 @@ from questions import QUESTIONS
 from scenarios import SCENARIOS, SCENARIO_NAMES
 from scoring import SCENARIO_KEYS, AUDIO_FILES, calculate_result
 from infographic import generate_graph
+from database import get_pool, init_db, save_user, get_all_users
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 bot = Bot(token=BOT_TOKEN)
 dp  = Dispatcher(storage=MemoryStorage())
+pool = None
 
 TOTAL_Q = len(QUESTIONS)
 
@@ -45,12 +47,48 @@ async def cmd_setvideo(message: Message):
     else:
         await message.answer("Send video with /setvideo caption")
 
+@dp.message(Command("broadcast"))
+async def cmd_broadcast(message: Message):
+    if str(message.from_user.id) != str(ADMIN_ID):
+        return
+    text = message.text.replace("/broadcast", "").strip()
+    if not text:
+        await message.answer("Напиши текст после команды:\n/broadcast Привет всем!")
+        return
+    users = await get_all_users(pool)
+    sent = 0
+    failed = 0
+    for user in users:
+        try:
+            await bot.send_message(user["user_id"], text)
+            sent += 1
+            await asyncio.sleep(0.05)
+        except Exception:
+            failed += 1
+    await message.answer(f"✅ Отправлено: {sent}\n❌ Ошибок: {failed}")
+
+@dp.message(Command("stats"))
+async def cmd_stats(message: Message):
+    if str(message.from_user.id) != str(ADMIN_ID):
+        return
+    users = await get_all_users(pool)
+    await message.answer(f"👥 Всего подписчиков: {len(users)}")
+
 class QuizState(StatesGroup):
     answering = State()
 
 @dp.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
+
+    # Сохраняем пользователя
+    await save_user(
+        pool,
+        message.from_user.id,
+        message.from_user.username,
+        message.from_user.full_name
+    )
+
     kb = InlineKeyboardBuilder()
     kb.button(text="▶ Пройти Чекап", callback_data="start_quiz")
 
@@ -59,9 +97,6 @@ async def cmd_start(message: Message, state: FSMContext):
         if os.path.exists(name):
             photo_path = name
             break
-
-    logger.info(f"Files in current dir: {os.listdir('.')}")
-    logger.info(f"Photo path found: {photo_path}")
 
     welcome_text = (
         "Привет. Я Катарина Ковальская — эксперт по программированию подсознания.\n\n"
@@ -235,6 +270,9 @@ async def send_cta(message: Message):
     )
 
 async def main():
+    global pool
+    pool = await get_pool()
+    await init_db(pool)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
