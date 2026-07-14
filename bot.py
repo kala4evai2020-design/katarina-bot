@@ -16,7 +16,7 @@ from questions import QUESTIONS
 from scenarios import SCENARIOS, SCENARIO_NAMES
 from scoring import SCENARIO_KEYS, AUDIO_FILES, calculate_result
 from infographic import generate_graph
-from database import get_pool, init_db, save_user, get_all_users
+from database import get_pool, init_db, save_user, get_all_users, set_in_progress, is_in_progress
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -88,6 +88,12 @@ async def cmd_start(message: Message, state: FSMContext):
         message.from_user.full_name
     )
 
+    if await is_in_progress(pool, message.from_user.id):
+        await message.answer(
+            "Ты уже проходишь Чекап — подожди, скоро придут следующие сообщения."
+        )
+        return
+
     kb = InlineKeyboardBuilder()
     kb.button(text="▶ Пройти Чекап", callback_data="start_quiz")
 
@@ -129,6 +135,7 @@ async def start_quiz(callback: CallbackQuery, state: FSMContext):
     scores = {k: 0 for k in SCENARIO_KEYS}
     await state.set_state(QuizState.answering)
     await state.update_data(q_idx=0, scores=scores)
+    await set_in_progress(pool, callback.from_user.id, True)
     await callback.answer()
 
     kb = InlineKeyboardBuilder()
@@ -276,6 +283,7 @@ async def send_cta(message: Message):
         "открыта только один раз, в течении 48 часов после чекапа.",
         reply_markup=kb.as_markup()
     )
+    await set_in_progress(pool, message.chat.id, False)
 
 async def main():
     global pool
