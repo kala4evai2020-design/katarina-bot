@@ -1,7 +1,3 @@
-"""
-Генерирует горизонтальную диаграмму профиля сценариев.
-Ведущие сценарии выделены золотым, остальные — приглушённым.
-"""
 import os
 import urllib.request
 from PIL import Image, ImageDraw, ImageFont
@@ -14,13 +10,14 @@ TEXT_MAIN  = "#F0EAF5"
 TEXT_DIM   = "#907A8A"
 ACCENT_LINE= "#7B3B6E"
 
-SCENARIO_ORDER = ["V", "K", "HD", "N", "S"]
+SCENARIO_ORDER = ["V", "K", "HD", "N", "S", "Z"]
 SCENARIO_LABELS = {
     "V":  "Выживатель",
     "K":  "Контролёр",
     "HD": "Хорошая\nдевочка",
     "N":  "Невидимка",
     "S":  "Спасатель",
+    "Z":  "Свободный",
 }
 
 FONT_URL_REGULAR = "https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Regular.ttf"
@@ -51,25 +48,25 @@ def generate_graph(percentages: dict, leaders: list, graph_file: str) -> str:
 
     draw.rectangle([10, 10, SIZE-10, SIZE-10], outline=LEAD_COLOR, width=2)
 
-    f_head  = _font(30, bold=True)
-    f_sub   = _font(22)
-    f_label = _font(26, bold=True)
-    f_pct   = _font(30, bold=True)
-    f_small = _font(20)
+    f_head  = _font(34, bold=True)
+    f_sub   = _font(24)
+    f_label = _font(30, bold=True)
+    f_pct   = _font(34, bold=True)
+    f_small = _font(24)
 
-    draw.text((SIZE//2, 60),  "ВАШ ПРОФИЛЬ ЖИЗНЕННЫХ СЦЕНАРИЕВ",
+    draw.text((SIZE//2, 58),  "ВАШ ПРОФИЛЬ ЖИЗНЕННЫХ СЦЕНАРИЕВ",
               font=f_head, fill=TEXT_MAIN, anchor="mm")
-    draw.text((SIZE//2, 100), "Чекап подсознания · Катарина Ковальская",
+    draw.text((SIZE//2, 96), "Чекап подсознания · Катарина Ковальская",
               font=f_sub,  fill=TEXT_DIM, anchor="mm")
 
-    draw.line([(60, 130), (SIZE-60, 130)], fill=ACCENT_LINE, width=1)
+    draw.line([(60, 122), (SIZE-60, 122)], fill=ACCENT_LINE, width=1)
 
     n        = len(SCENARIO_ORDER)
-    area_top = 155
-    area_bot = SIZE - 160
+    area_top = 140
+    area_bot = SIZE - 155
     slot_h   = (area_bot - area_top) // n
-    bar_h    = int(slot_h * 0.55)
-    bar_left = 260
+    bar_h    = int(slot_h * 0.52)
+    bar_left = 300
     bar_max  = SIZE - bar_left - 80
 
     for i, key in enumerate(SCENARIO_ORDER):
@@ -84,45 +81,45 @@ def generate_graph(percentages: dict, leaders: list, graph_file: str) -> str:
 
         draw.rounded_rectangle(
             [bar_left, bar_top, bar_left + bar_max, bar_bot],
-            radius=10, fill="#2A1E28"
+            radius=8, fill="#2A1E28"
         )
         draw.rounded_rectangle(
             [bar_left, bar_top, bar_left + fill_w, bar_bot],
-            radius=10, fill=color
+            radius=8, fill=color
         )
 
         label = SCENARIO_LABELS[key]
         label_color = TEXT_MAIN if is_lead else TEXT_DIM
         lines = label.split("\n")
         if len(lines) == 1:
-            draw.text((bar_left - 14, cy), lines[0],
+            draw.text((bar_left - 16, cy), lines[0],
                       font=f_label, fill=label_color, anchor="rm")
         else:
-            draw.text((bar_left - 14, cy - 14), lines[0],
-                      font=_font(22, bold=True), fill=label_color, anchor="rm")
-            draw.text((bar_left - 14, cy + 12), lines[1],
-                      font=_font(22, bold=True), fill=label_color, anchor="rm")
+            draw.text((bar_left - 16, cy - 16), lines[0],
+                      font=_font(24, bold=True), fill=label_color, anchor="rm")
+            draw.text((bar_left - 16, cy + 14), lines[1],
+                      font=_font(24, bold=True), fill=label_color, anchor="rm")
 
         pct_x = bar_left + fill_w + 14
         draw.text((pct_x, cy), f"{pct}%",
                   font=f_pct, fill=TEXT_MAIN if is_lead else TEXT_DIM, anchor="lm")
 
         if is_lead:
-            draw.text((bar_left - 50, cy), "★",
-                      font=_font(28, bold=True), fill=LEAD_COLOR, anchor="mm")
+            draw.text((bar_left - 52, cy), "★",
+                      font=_font(30, bold=True), fill=LEAD_COLOR, anchor="mm")
 
-    draw.line([(60, SIZE-140), (SIZE-60, SIZE-140)], fill=ACCENT_LINE, width=1)
+    draw.line([(60, SIZE-138), (SIZE-60, SIZE-138)], fill=ACCENT_LINE, width=1)
 
     leader_names = " + ".join(
         SCENARIO_LABELS[k].replace("\n", " ") for k in leaders
     )
     result_type = "Один ведущий сценарий" if len(leaders) == 1 else "Два ведущих сценария"
 
-    draw.text((SIZE//2, SIZE-110), f"Ведущий сценарий: {leader_names}",
-              font=_font(24, bold=True), fill=LEAD_COLOR, anchor="mm")
-    draw.text((SIZE//2, SIZE-78),  result_type,
+    draw.text((SIZE//2, SIZE-108), f"Ведущий сценарий: {leader_names}",
+              font=_font(28, bold=True), fill=LEAD_COLOR, anchor="mm")
+    draw.text((SIZE//2, SIZE-72),  result_type,
               font=f_small, fill=TEXT_DIM, anchor="mm")
-    draw.text((SIZE//2, SIZE-44),
+    draw.text((SIZE//2, SIZE-38),
               "Любой сценарий — это точка входа, а не приговор.",
               font=f_small, fill=TEXT_DIM, anchor="mm")
 
