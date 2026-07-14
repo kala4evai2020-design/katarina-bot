@@ -41,8 +41,8 @@ async def cmd_setvideo(message: Message):
         file_id = message.video.file_id
         save_video_file_id(file_id)
         await message.answer(
-            f"✅ Видео получено!\n\nfile_id:\n{file_id}\n\n"
-            f"Добавь его в Railway → Variables → VIDEO_FILE_ID"
+            f"Видео получено!\n\nfile_id:\n{file_id}\n\n"
+            f"Добавь его в Railway -> Variables -> VIDEO_FILE_ID"
         )
     else:
         await message.answer("Send video with /setvideo caption")
@@ -65,14 +65,14 @@ async def cmd_broadcast(message: Message):
             await asyncio.sleep(0.05)
         except Exception:
             failed += 1
-    await message.answer(f"✅ Отправлено: {sent}\n❌ Ошибок: {failed}")
+    await message.answer(f"Отправлено: {sent}\nОшибок: {failed}")
 
 @dp.message(Command("stats"))
 async def cmd_stats(message: Message):
     if str(message.from_user.id) != str(ADMIN_ID):
         return
     users = await get_all_users(pool)
-    await message.answer(f"👥 Всего подписчиков: {len(users)}")
+    await message.answer(f"Всего подписчиков: {len(users)}")
 
 class QuizState(StatesGroup):
     answering = State()
@@ -81,7 +81,6 @@ class QuizState(StatesGroup):
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
 
-    # Сохраняем пользователя
     await save_user(
         pool,
         message.from_user.id,
@@ -131,6 +130,23 @@ async def start_quiz(callback: CallbackQuery, state: FSMContext):
     await state.set_state(QuizState.answering)
     await state.update_data(q_idx=0, scores=scores)
     await callback.answer()
+
+    kb = InlineKeyboardBuilder()
+    kb.button(text="▶ Начать", callback_data="begin_quiz")
+    await callback.message.answer(
+        "Один важный момент перед стартом⤵\n\n"
+        "Постарайся отвечать не так, как тебе хотелось бы реагировать, "
+        "и не так, как тебе кажется что было бы правильно.\n\n"
+        "Постарайся дать максимально честный ответ — вот как реагируешь на самом деле, "
+        "в первую секунду, ещё до того как мозг начал всё контролировать.\n\n"
+        "Именно эта первая реакция и поможет выявить твои подсознательные программы.\n\n"
+        "Чем честнее будешь сейчас — тем точнее результат.",
+        reply_markup=kb.as_markup()
+    )
+
+@dp.callback_query(F.data == "begin_quiz")
+async def begin_quiz(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
     await send_question(callback.message, 0)
 
 async def send_question(message: Message, idx: int):
@@ -138,10 +154,9 @@ async def send_question(message: Message, idx: int):
     kb = InlineKeyboardBuilder()
     for opt in q["options"]:
         kb.button(text=opt["text"], callback_data=f"ans_{opt['scenario']}")
-    kb.adjust(1)
+    kb.adjust(6)
     await message.answer(
-        f"_{idx + 1} из {TOTAL_Q}_\n\n*{q['text']}*",
-        parse_mode="Markdown",
+        q["text"],
         reply_markup=kb.as_markup()
     )
 
@@ -161,20 +176,18 @@ async def process_answer(callback: CallbackQuery, state: FSMContext):
 
 async def show_result(message: Message, raw_scores: dict, state: FSMContext):
     await message.answer(
-        "⏳ *Твоё сканирование завершено.*\n\nСейчас обрабатываю ответы...",
-        parse_mode="Markdown"
+        "Твоё сканирование завершено.\n\nСейчас обрабатываю ответы..."
     )
     await asyncio.sleep(2)
     result  = calculate_result(raw_scores)
     pct     = result["percentages"]
     leaders = result["leaders"]
     lines = []
-    for key in ["V", "K", "HD", "N", "S"]:
+    for key in ["V", "K", "HD", "N", "S", "Z"]:
         marker = "⭐" if key in leaders else "·"
-        lines.append(f"{marker} *{SCENARIO_NAMES[key]}* — {pct[key]}%")
+        lines.append(f"{marker} {SCENARIO_NAMES[key]} — {pct[key]}%")
     await message.answer(
-        "📊 *Профиль жизненных сценариев:*\n\n" + "\n".join(lines),
-        parse_mode="Markdown"
+        "Профиль жизненных сценариев:\n\n" + "\n".join(lines)
     )
     await asyncio.sleep(1)
     img_path = generate_graph(pct, leaders, result["graph_file"])
@@ -183,24 +196,23 @@ async def show_result(message: Message, raw_scores: dict, state: FSMContext):
     type_label   = "один ведущий сценарий" if result["result_type"] == "A" else "два ведущих сценария"
     await message.answer_photo(
         photo=photo,
-        caption=f"*Твой результат: {leader_names}*\n_{type_label}_",
-        parse_mode="Markdown"
+        caption=f"Твой результат: {leader_names} — {type_label}"
     )
     await asyncio.sleep(1)
     primary = leaders[0]
     sc = SCENARIOS[primary]
     await message.answer(
-        f"*Твой ведущий сценарий — {sc['name'].upper()}*\n\n{sc['description']}",
-        parse_mode="Markdown"
+        f"Твой ведущий сценарий — {sc['name'].upper()}\n\n{sc['description']}"
     )
     await asyncio.sleep(1)
     await state.update_data(leader=primary, quiz_done_at=datetime.now().isoformat())
     await send_podcast(message, primary, sc)
 
 async def send_podcast(message: Message, key: str, sc: dict):
+    await asyncio.sleep(60)
+
     await message.answer(
-        "🎙 *Записала тебе личное аудио послание — прослушай его, это важно.*",
-        parse_mode="Markdown"
+        "Записала тебе личное аудио послание — прослушай его, это важно."
     )
     audio_file = AUDIO_FILES[key]
     audio_path = None
@@ -214,11 +226,9 @@ async def send_podcast(message: Message, key: str, sc: dict):
         await message.answer_voice(voice=FSInputFile(audio_path))
     else:
         logger.warning(f"Audio not found: {audio_file}")
-        await message.answer(
-            "_(Аудио временно недоступно)_",
-            parse_mode="Markdown"
-        )
-    await asyncio.sleep(1)
+        await message.answer("(Аудио временно недоступно)")
+
+    await asyncio.sleep(600)
     await send_podcast_bridge(message)
 
 async def send_podcast_bridge(message: Message):
@@ -245,11 +255,9 @@ async def send_video(callback: CallbackQuery):
     if file_id:
         await callback.message.answer_video(video=file_id)
     else:
-        await callback.message.answer(
-            "🎬 _(Видео скоро появится здесь)_",
-            parse_mode="Markdown"
-        )
-    await asyncio.sleep(1)
+        await callback.message.answer("(Видео скоро появится здесь)")
+
+    await asyncio.sleep(1080)
     await send_cta(callback.message)
 
 async def send_cta(message: Message):
